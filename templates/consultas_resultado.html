@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados de Consulta</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h2>{{ tipo }}</h2>
+    <ul>
+        {% for r in resultados %}
+        <li>{{ r }}</li>
+        {% else %}
+        <li>No se encontraron resultados.</li>
+        {% endfor %}
+    </ul>
+    <a href="/consultas.html">← Volver a consultas</a>
+</div>
+</body>
+</html>

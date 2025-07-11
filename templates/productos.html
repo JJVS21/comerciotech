@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Productos - ComercioTech</title>
+    
+    <!-- Fuente estilo gamer -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilo visual gamer -->
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script>
+        function confirmarEliminacion(nombre, id) {
+            if (confirm("¿Eliminar el producto " + nombre + "?")) {
+                window.location.href = "/productos/eliminar/" + id;
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h2>🎮 Agregar Producto</h2>
+    <form action="/productos/agregar" method="post">
+        <input name="codigo" placeholder="Código del producto" required>
+        <input name="nombre" placeholder="Nombre del producto" required>
+        <input name="precio" type="number" step="0.01" placeholder="Precio" required>
+        <input name="stock" type="number" placeholder="Stock disponible" required>
+        <input name="vencimiento" type="date" placeholder="Fecha de vencimiento">
+        <select name="estado" required>
+            <option value="">-- Estado --</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Agotado">Agotado</option>
+            <option value="Descontinuado">Descontinuado</option>
+        </select>
+        <button type="submit">💾 Guardar Producto</button>
+    </form>
+
+    <a href="/">← Volver al menú principal</a>
+
+    <h2>📦 Productos Registrados</h2>
+    <ul>
+        {% for p in productos %}
+        <li>
+            {{ p['nombre'] }} - ${{ p['precio'] }} - Stock: {{ p['stock'] }} - Estado: {{ p['estado'] }}
+            <button onclick="confirmarEliminacion('{{ p['nombre'] }}', '{{ p['_id'] }}')">🗑️ Eliminar</button>
+        </li>
+        {% else %}
+        <li>No hay productos registrados.</li>
+        {% endfor %}
+    </ul>
+</div>
+</body>
+</html>
+
+
