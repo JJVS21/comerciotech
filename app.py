@@ -134,33 +134,36 @@ def agregar_producto():
     except Exception as e:
         print("❌ Error al agregar producto:", e)
 
-
-
 def listar_productos():
-    print("\n📦 Lista de Productos:")
-    datos = []
-    for p in productos.find():
-        fila = [
-            p.get("codigo_producto", ""),
-            p.get("nombre", ""),
-            p.get("tipo", ""),
-            p.get("precio", 0)
-        ]
-        datos.append(fila)
-
-    headers = ["Código", "Nombre", "Tipo", "Precio"]
-    print(tabulate(datos, headers=headers, tablefmt="grid"))
+    try:
+        datos = []
+        for p in productos.find():
+            datos.append([
+                p.get("codigo_producto", ""),
+                p.get("nombre", ""),
+                p.get("precio", ""),
+                p.get("stock", ""),
+                p.get("fecha_vencimiento", ""),
+                p.get("estado", "")
+            ])
+        if datos:
+            headers = ["Código", "Nombre", "Precio", "Stock", "Vencimiento", "Estado"]
+            print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("⚠️ No hay productos registrados.")
+    except Exception as e:
+        print("❌ Error al listar productos:", e)
 
 
 def eliminar_producto():
     codigo = input("Código del producto a eliminar: ").strip()
     producto = productos.find_one({"codigo_producto": codigo})
+
     if not producto:
         print("❌ Producto no encontrado.")
         return
 
-    print(f"\nProducto encontrado: {producto['nombre']}, Tipo: {producto['tipo']}, Precio: {producto['precio']}")
-    confirmacion = input("¿Estás seguro que deseas eliminar este producto? (s/n): ").strip().lower()
+    confirmacion = input(f"¿Seguro que deseas eliminar el producto '{producto.get('nombre')}'? (s/n): ").lower()
     if confirmacion == "s":
         productos.delete_one({"codigo_producto": codigo})
         print("🗑️ Producto eliminado.")
@@ -173,25 +176,39 @@ def eliminar_producto():
 def modificar_producto():
     codigo = input("Código del producto a modificar: ").strip()
     producto = productos.find_one({"codigo_producto": codigo})
+
     if not producto:
         print("❌ Producto no encontrado.")
         return
 
-    print("Deja en blanco si no deseas cambiar un campo.")
-    nuevo_codigo = input(f"Código [{producto['codigo_producto']}]: ").strip() or producto['codigo_producto']
-    nombre = input(f"Nombre [{producto['nombre']}]: ").strip() or producto['nombre']
-    tipo = input(f"Tipo [{producto['tipo']}]: ").strip() or producto['tipo']
-    precio_input = input(f"Precio [{producto['precio']}]: ").strip()
-    precio = float(precio_input) if precio_input else producto['precio']
+    print("🔄 Deja en blanco los campos que no quieras modificar.")
+    nombre = input(f"Nuevo nombre [{producto.get('nombre')}]: ").strip()
+    precio = input(f"Nuevo precio [{producto.get('precio')}]: ").strip()
+    stock = input(f"Nuevo stock [{producto.get('stock')}]: ").strip()
+    vencimiento = input(f"Nueva fecha de vencimiento [{producto.get('fecha_vencimiento')}]: ").strip()
+    estado = input(f"Nuevo estado [{producto.get('estado')}]: ").strip()
 
-    nuevos_datos = {
-        "codigo_producto": nuevo_codigo,
-        "nombre": nombre,
-        "tipo": tipo,
-        "precio": precio
-    }
+    update = {}
+    if nombre: update["nombre"] = nombre
+    if precio:
+        try:
+            update["precio"] = float(precio)
+        except:
+            print("⚠️ Precio inválido. No se actualizará.")
+    if stock:
+        try:
+            update["stock"] = int(stock)
+        except:
+            print("⚠️ Stock inválido. No se actualizará.")
+    if vencimiento: update["fecha_vencimiento"] = vencimiento
+    if estado: update["estado"] = estado
 
-    productos.update_one({"codigo_producto": codigo}, {"$set": nuevos_datos})
+    if update:
+        productos.update_one({"codigo_producto": codigo}, {"$set": update})
+        print("✅ Producto actualizado.")
+    else:
+        print("⚠️ No se realizaron cambios.")
+
 
 # ========================= PEDIDOS =========================
 
@@ -359,18 +376,90 @@ def modificar_pedido():
 
 # ========================= CONSULTAS =========================
 
+def buscar_producto_en_pedido():
+    codigo_pedido = input("Código del pedido: ").strip()
+    pedido = pedidos.find_one({"codigo_pedido": codigo_pedido})
+
+    if not pedido:
+        print("❌ Pedido no encontrado.")
+        return
+
+    print(f"📦 Productos del pedido {codigo_pedido}:")
+    datos = []
+    for item in pedido.get("productos", []):
+        producto = productos.find_one({"codigo_producto": item.get("producto_id")})
+        if producto:
+            datos.append([
+                producto.get("codigo_producto"),
+                producto.get("nombre"),
+                item.get("cantidad"),
+                item.get("precio")
+            ])
+    if datos:
+        headers = ["Código", "Nombre", "Cantidad", "Precio"]
+        print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
+    else:
+        print("⚠️ No hay productos registrados en este pedido.")
+
+def buscar_pedidos_por_fecha():
+    fecha = input("Ingrese la fecha (YYYY-MM-DD): ").strip()
+    resultados = pedidos.find({"fecha_pedido": fecha})
+
+    datos = []
+    for p in resultados:
+        datos.append([
+            p.get("codigo_pedido"),
+            p.get("cliente_id"),
+            p.get("fecha_pedido"),
+            p.get("monto_total")
+        ])
+
+    if datos:
+        headers = ["Código Pedido", "ID Cliente", "Fecha", "Monto Total"]
+        print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
+    else:
+        print("⚠️ No se encontraron pedidos en esa fecha.")
+
+def buscar_clientes_por_ciudad():
+    ciudad = input("Ingrese la ciudad: ").strip().lower()
+    resultados = clientes.find({"direccion.ciudad": {"$regex": f"^{ciudad}$", "$options": "i"}})
+
+    datos = []
+    for c in resultados:
+        datos.append([
+            c.get("identificador_cliente"),
+            c.get("nombres"),
+            c.get("apellidos"),
+            c.get("direccion", {}).get("calle", ""),
+            c.get("direccion", {}).get("numero", ""),
+            c.get("direccion", {}).get("ciudad", "")
+        ])
+
+    if datos:
+        headers = ["ID Cliente", "Nombres", "Apellidos", "Calle", "Número", "Ciudad"]
+        print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
+    else:
+        print("⚠️ No se encontraron clientes en esa ciudad.")
+
 def mostrar_pedidos_por_cliente():
-    id_cliente = input("ID del cliente: ").strip()
-    try:
-        cliente = clientes.find_one({"_id": ObjectId(id_cliente)})
-        if not cliente:
-            print("❌ Cliente no encontrado.")
-            return
-        print(f"📦 Pedidos de {cliente['nombres']} {cliente['apellidos']}:")
-        for p in pedidos.find({"cliente_id": ObjectId(id_cliente)}):
-            print(p)
-    except:
-        print("❌ Error al buscar pedidos.")
+    id_cliente = input("Ingrese el ID del cliente: ").strip()
+    resultado = pedidos.find({"cliente_id": id_cliente})
+
+    datos = []
+    for p in resultado:
+        datos.append([
+            p.get("codigo_pedido"),
+            p.get("fecha_pedido"),
+            p.get("monto_total")
+        ])
+
+    if datos:
+        headers = ["Código Pedido", "Fecha", "Monto Total"]
+        print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
+    else:
+        print("⚠️ El cliente no tiene pedidos registrados.")
+
+
 
 # ========================= SUBMENÚS =========================
 
@@ -442,16 +531,28 @@ def menu_pedidos():
 
 def menu_consultas():
     while True:
-        print("\n--- Submenú Consultas ---")
-        print("1. Mostrar pedidos por cliente")
-        print("0. Volver")
-        opcion = input("Opción: ")
+        print("\n📊 SUBMENÚ DE CONSULTAS")
+        print("1. Buscar producto de un pedido")
+        print("2. Buscar pedidos por fecha")
+        print("3. Buscar clientes por ciudad")
+        print("4. Mostrar pedidos por cliente")
+        print("5. Volver al menú principal")
+
+        opcion = input("Selecciona una opción: ")
+
         if opcion == "1":
+            buscar_producto_en_pedido()
+        elif opcion == "2":
+            buscar_pedidos_por_fecha()
+        elif opcion == "3":
+            buscar_clientes_por_ciudad()
+        elif opcion == "4":
             mostrar_pedidos_por_cliente()
-        elif opcion == "0":
-            break
+        elif opcion == "5":
+            return
         else:
             print("❌ Opción inválida.")
+
 
 # ========================= MENÚ PRINCIPAL =========================
 
