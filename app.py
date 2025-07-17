@@ -124,7 +124,7 @@ def agregar_producto():
     try:
         producto = {
             "codigo_producto": codigo,
-            "nombre": nombre,
+            "nombre_producto": nombre,
             "precio": float(precio),
             "stock": int(stock),
             "fecha_vencimiento": vencimiento,
@@ -141,7 +141,7 @@ def listar_productos():
         for p in productos.find():
             datos.append([
                 p.get("codigo_producto", ""),
-                p.get("nombre", ""),
+                p.get("nombre_producto", ""),
                 p.get("precio", ""),
                 p.get("stock", ""),
                 p.get("fecha_vencimiento", ""),
@@ -183,14 +183,14 @@ def modificar_producto():
         return
 
     print("🔄 Deja en blanco los campos que no quieras modificar.")
-    nombre = input(f"Nuevo nombre [{producto.get('nombre')}]: ").strip()
+    nombre = input(f"Nuevo nombre [{producto.get('nombre_producto')}]: ").strip()
     precio = input(f"Nuevo precio [{producto.get('precio')}]: ").strip()
     stock = input(f"Nuevo stock [{producto.get('stock')}]: ").strip()
     vencimiento = input(f"Nueva fecha de vencimiento [{producto.get('fecha_vencimiento')}]: ").strip()
     estado = input(f"Nuevo estado [{producto.get('estado')}]: ").strip()
 
     update = {}
-    if nombre: update["nombre"] = nombre
+    if nombre: update["nombre_producto"] = nombre
     if precio:
         try:
             update["precio"] = float(precio)
