@@ -214,8 +214,15 @@ def modificar_producto():
 
 def agregar_pedido():
     codigo = input("Código del pedido: ").strip()
+
+    # Validación de código de pedido duplicado
+    if pedidos.find_one({"codigo_pedido": codigo}):
+        print("❌ Ya existe un pedido con ese código.")
+        return
+
     id_cliente = input("Identificador del cliente (identificador_cliente): ").strip()
     cliente = clientes.find_one({"identificador_cliente": id_cliente})
+    
     if not cliente:
         print("❌ Cliente no encontrado.")
         return
@@ -263,35 +270,6 @@ def agregar_pedido():
     print("✅ Pedido agregado.")
 
 
-    fecha = input("Fecha del pedido (YYYY-MM-DD): ").strip()
-    productos_pedido = []
-    while True:
-        id_producto = input("ID de producto (ENTER para terminar): ").strip()
-        if not id_producto:
-            break
-        cantidad = int(input("Cantidad: "))
-        prod = productos.find_one({"_id": ObjectId(id_producto)})
-        if not prod:
-            print("❌ Producto no encontrado.")
-            continue
-        productos_pedido.append({
-            "producto_id": prod["_id"],
-            "nombre": prod["nombre"],
-            "cantidad": cantidad,
-            "precio": prod["precio"]
-        })
-
-    monto_total = sum(p["cantidad"] * p["precio"] for p in productos_pedido)
-
-    pedido = {
-        "cliente_id": cliente["_id"],
-        "fecha_pedido": fecha,
-        "monto_total": monto_total,
-        "productos": productos_pedido
-    }
-
-    pedidos.insert_one(pedido)
-    print("✅ Pedido agregado.")
 
 def listar_pedidos():
     print("\n📄 Lista de Pedidos:")
