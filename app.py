@@ -248,7 +248,7 @@ def agregar_pedido():
 
         productos_pedido.append({
             "codigo_producto": codigo_producto,
-            "nombre": producto["nombre"],
+            "nombre": producto["nombre_producto"],
             "cantidad": cantidad,
             "precio": producto["precio"]
         })
@@ -261,7 +261,7 @@ def agregar_pedido():
 
     pedido = {
         "codigo_pedido": codigo,
-        "cliente_id": cliente["identificador_cliente"],
+        "identificador_cliente": cliente["identificador_cliente"],
         "fecha_pedido": fecha,
         "monto_total": monto_total,
         "productos": productos_pedido
@@ -273,20 +273,29 @@ def agregar_pedido():
 
 
 def listar_pedidos():
-    print("\n📄 Lista de Pedidos:")
-    datos = []
+    print("\n📦 Detalle de todos los pedidos:\n")
+
     for p in pedidos.find():
-        fila = [
-            p.get("codigo_pedido", ""),
-            p.get("fecha_pedido", ""),
-            p.get("monto_total", 0),
-            str(p.get("cliente_id", ""))
-        ]
-        datos.append(fila)
+        print("📄 Pedido:")
+        print(f"🔢 Código del Pedido: {p.get('codigo_pedido', '')}")
+        print(f"🧑 Código Cliente: {p.get('identificador_cliente', '')}")
+        print(f"🗓️ Fecha del Pedido: {p.get('fecha_pedido', '')}")
+        print("📦 Productos:")
 
-    headers = ["Código Pedido", "Fecha", "Monto Total", "Cliente ID"]
-    print(tabulate(datos, headers=headers, tablefmt="grid"))
+        productos = p.get("productos", [])
+        if productos:
+            for prod in productos:
+                print(f"  🆔 Código Producto: {prod.get('codigo_producto', '')}")
+                print(f"     📦 Cantidad: {prod.get('cantidad', 0)}")
+                print(f"     💵 Precio Unitario: ${prod.get('precio_unitario', prod.get('precio', 0))}")
+                print(f"     💰 Total Comprado: ${prod.get('total_comprado', prod.get('cantidad', 0) * prod.get('precio', 0))}")
+                print("     --------------------")
+        else:
+            print("   ❌ No hay productos registrados en este pedido.")
 
+        print(f"💲 Monto Total de Compra: ${p.get('monto_total_comprado', p.get('monto_total', 0))}")
+        print(f"💳 Método de Pago: {p.get('metodo_de_pago', 'No especificado')}")
+        print("=" * 50)
 
 def eliminar_pedido():
     codigo = input("Código del pedido a eliminar: ").strip()
@@ -336,7 +345,7 @@ def modificar_pedido():
 
             productos_pedido.append({
                 "codigo_producto": codigo_producto,
-                "nombre": producto["nombre"],
+                "nombre": producto["nombre_producto"],
                 "cantidad": cantidad,
                 "precio": producto["precio"]
             })
@@ -354,7 +363,6 @@ def modificar_pedido():
 
 
 # ========================= CONSULTAS =========================
-
 def buscar_producto_en_pedido():
     codigo_pedido = input("Código del pedido: ").strip()
     pedido = pedidos.find_one({"codigo_pedido": codigo_pedido})
@@ -366,31 +374,46 @@ def buscar_producto_en_pedido():
     print(f"📦 Productos del pedido {codigo_pedido}:")
     datos = []
     for item in pedido.get("productos", []):
-        producto = productos.find_one({"codigo_producto": item.get("producto_id")})
+        producto = productos.find_one({"codigo_producto": item.get("codigo_producto")})
         if producto:
             datos.append([
                 producto.get("codigo_producto"),
-                producto.get("nombre"),
+                producto.get("nombre_producto"),
                 item.get("cantidad"),
-                item.get("precio")
+                item.get("precio_unitario",)
             ])
     if datos:
-        headers = ["Código", "Nombre", "Cantidad", "Precio"]
+        headers = ["Código", "Nombre", "Cantidad", "Precio Unintario"]
         print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
     else:
         print("⚠️ No hay productos registrados en este pedido.")
 
 def buscar_pedidos_por_fecha():
-    fecha = input("Ingrese la fecha (YYYY-MM-DD): ").strip()
-    resultados = pedidos.find({"fecha_pedido": fecha})
+    fecha_str = input("Ingrese la fecha (YYYY-MM-DD): ").strip()
+    try:
+        fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d")
+    except ValueError:
+        print("❌ Formato de fecha inválido. Usa YYYY-MM-DD.")
+        return
+
+    # Filtrar pedidos con la misma fecha ignorando la hora
+    fecha_inicio = datetime.combine(fecha_dt.date(), datetime.min.time())
+    fecha_fin = datetime.combine(fecha_dt.date(), datetime.max.time())
+
+    resultados = pedidos.find({
+        "fecha_pedido": {
+            "$gte": fecha_inicio,
+            "$lte": fecha_fin
+        }
+    })
 
     datos = []
     for p in resultados:
         datos.append([
             p.get("codigo_pedido"),
-            p.get("cliente_id"),
+            p.get("identificador_cliente"),
             p.get("fecha_pedido"),
-            p.get("monto_total")
+            p.get("monto_total_comprado")
         ])
 
     if datos:
@@ -398,6 +421,7 @@ def buscar_pedidos_por_fecha():
         print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
     else:
         print("⚠️ No se encontraron pedidos en esa fecha.")
+
 
 def buscar_clientes_por_ciudad():
     ciudad = input("Ingrese la ciudad: ").strip().lower()
@@ -422,21 +446,23 @@ def buscar_clientes_por_ciudad():
 
 def mostrar_pedidos_por_cliente():
     id_cliente = input("Ingrese el ID del cliente: ").strip()
-    resultado = pedidos.find({"cliente_id": id_cliente})
+    resultado = pedidos.find({"identificador_cliente": id_cliente})
 
     datos = []
     for p in resultado:
         datos.append([
             p.get("codigo_pedido"),
+            p.get("identificador_cliente"),
             p.get("fecha_pedido"),
-            p.get("monto_total")
+            p.get("monto_total_comprado")
         ])
 
     if datos:
-        headers = ["Código Pedido", "Fecha", "Monto Total"]
+        headers = ["Código Pedido", "ID Cliente", "Fecha", "Monto Total"]
         print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
     else:
         print("⚠️ El cliente no tiene pedidos registrados.")
+
 
 
 
