@@ -216,7 +216,6 @@ def modificar_producto():
 def agregar_pedido():
     codigo = input("Código del pedido: ").strip()
 
-    # Validación de código de pedido duplicado
     if pedidos.find_one({"codigo_pedido": codigo}):
         print("❌ Ya existe un pedido con ese código.")
         return
@@ -257,18 +256,22 @@ def agregar_pedido():
         print("❌ No se agregaron productos.")
         return
 
+    metodo_pago = input("Método de pago: ").strip()
+
     monto_total = sum(p["cantidad"] * p["precio"] for p in productos_pedido)
 
     pedido = {
         "codigo_pedido": codigo,
         "identificador_cliente": cliente["identificador_cliente"],
         "fecha_pedido": fecha,
-        "monto_total": monto_total,
-        "productos": productos_pedido
+        "productos": productos_pedido,
+        "monto_total_comprado": monto_total,
+        "metodo_de_pago": metodo_pago
     }
 
     pedidos.insert_one(pedido)
     print("✅ Pedido agregado.")
+
 
 
 
@@ -294,7 +297,7 @@ def listar_pedidos():
             print("   ❌ No hay productos registrados en este pedido.")
 
         print(f"💲 Monto Total de Compra: ${p.get('monto_total_comprado', p.get('monto_total', 0))}")
-        print(f"💳 Método de Pago: {p.get('metodo_de_pago', 'No especificado')}")
+        print(f"💳 Método de Pago: {p.get('metodo_de_pago', 'No especificado')}")  # ← AQUÍ VA
         print("=" * 50)
 
 def eliminar_pedido():
@@ -313,7 +316,6 @@ def eliminar_pedido():
         print("❌ Eliminación cancelada.")
 
 
-
 def modificar_pedido():
     codigo = input("Código del pedido a modificar: ").strip()
     pedido = pedidos.find_one({"codigo_pedido": codigo})
@@ -322,6 +324,7 @@ def modificar_pedido():
         return
 
     fecha = input(f"Fecha del pedido [{pedido['fecha_pedido']}]: ").strip() or pedido["fecha_pedido"]
+    metodo_pago = input(f"Método de pago [{pedido.get('metodo_de_pago', 'No especificado')}]: ").strip() or pedido.get('metodo_de_pago', 'No especificado')
 
     modificar = input("¿Deseas modificar los productos del pedido? (s/n): ").strip().lower()
     productos_pedido = pedido["productos"]
@@ -355,12 +358,12 @@ def modificar_pedido():
     nuevos_datos = {
         "fecha_pedido": fecha,
         "productos": productos_pedido,
-        "monto_total": monto_total
+        "monto_total_comprado": monto_total,
+        "metodo_de_pago": metodo_pago
     }
 
     pedidos.update_one({"codigo_pedido": codigo}, {"$set": nuevos_datos})
     print("✏️ Pedido actualizado.")
-
 
 # ========================= CONSULTAS =========================
 def buscar_producto_en_pedido():
