@@ -307,7 +307,8 @@ def eliminar_pedido():
         print("❌ Pedido no encontrado.")
         return
 
-    print(f"\nPedido encontrado: Fecha: {pedido['fecha_pedido']}, Total: ${pedido['monto_total']}")
+    total = pedido.get("monto_total", pedido.get("monto_total_comprado", "No registrado"))
+    print(f"\nPedido encontrado: Fecha: {pedido.get('fecha_pedido', 'Sin fecha')}, Total: ${total}")
     confirmacion = input("¿Estás seguro que deseas eliminar este pedido? (s/n): ").strip().lower()
     if confirmacion == "s":
         pedidos.delete_one({"codigo_pedido": codigo})
@@ -374,22 +375,19 @@ def buscar_producto_en_pedido():
         print("❌ Pedido no encontrado.")
         return
 
+    productos = pedido.get("productos", [])
+
     print(f"📦 Productos del pedido {codigo_pedido}:")
-    datos = []
-    for item in pedido.get("productos", []):
-        producto = productos.find_one({"codigo_producto": item.get("codigo_producto")})
-        if producto:
-            datos.append([
-                producto.get("codigo_producto"),
-                producto.get("nombre_producto"),
-                item.get("cantidad"),
-                item.get("precio_unitario",)
-            ])
-    if datos:
-        headers = ["Código", "Nombre", "Cantidad", "Precio Unintario"]
-        print(tabulate(datos, headers=headers, tablefmt="fancy_grid"))
-    else:
+    if not productos:
         print("⚠️ No hay productos registrados en este pedido.")
+        return
+
+    for producto in productos:
+        print(f"🔢 Código Producto: {producto.get('codigo_producto', 'N/A')}")
+        print(f"📦 Cantidad: {producto.get('cantidad', 0)}")
+        print(f"💵 Precio Unitario: ${producto.get('precio_unitario', producto.get('precio', 'N/A'))}")
+        print(f"💰 Total Comprado: ${producto.get('total_comprado', producto.get('cantidad', 0) * producto.get('precio', 0))}")
+        print("-" * 30)
 
 def buscar_pedidos_por_fecha():
     fecha_str = input("Ingrese la fecha (YYYY-MM-DD): ").strip()
